@@ -17,9 +17,9 @@ function init() {
 
         if(SS88Tools.accountData.roles.includes('Owner')) {
 
-            injectCSS()
             setupTabs()
             getServerData()
+
         }
 
     }
@@ -48,6 +48,7 @@ function setupObserver() {
 
             });
 
+            injectCSS();
             setupTabs();
 
         }
