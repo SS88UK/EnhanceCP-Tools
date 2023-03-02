@@ -698,13 +698,223 @@ function formatBytes(bytes, decimals = 2) {
 
 function injectCSS() {
 
-    var h = document.head;
-    var l = document.createElement('link');
+    var CSS = `
+<style>
+.ss88_box {
+    font-family:Lato, sans-serif;
+}
+.ss88_box h1 {
+    font-weight:300;
+    margin:0;
+}
+.ss88_menu {
+    background-color:white;
+    width:100%;
+    display:flex;
+    margin-top:20px;
+}
+.ss88_menu>button {
+    padding:20px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:all 0.3s ease-in-out;
+}
+.ss88_menu>button.active, .ss88_menu>button:hover {
+    border-bottom:2px solid black;
+}
+.ss88_menu>button>span {
+    font-size: 12px;
+    margin-left:5px;
+    opacity: 0.5;
+}
+.ss88_box .ss88_card {
+    border-radius: 2px;
+    background-color: rgb(255, 255, 255);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 16px;
+    margin-left: 0px;
+    box-shadow: rgb(0 0 0 / 10%) 0px 4px 8px 0px;
+    padding: 16px;
+    margin-top: 35px;
+    font-family: Lato, sans-serif;
+}
+.ss88_card table {
+    font-size:13px;
+    width:100%;
+}
+.ss88_card table thead {
+    background-color: black;
+    color: white;
+    cursor:pointer;
+}
+.ss88_card table th, .ss88_card table td {
+    padding:10px;
+    text-align:left;
+}
+.ss88_card table :not(thead) tr:hover { 
+    background-color: #ebebeb;
+}
+.ss88_card table a {
+    color:black;
+}
+
+
+.ss88_dnsbl, .ss88_serverlogs {
+    width:100%;
+}
+.ss88_box .flex {
+    display:flex;
+    width:100%;
+    justify-content: space-between;
+}
+.ss88_dnsbl button:disabled,
+.ss88_dnsbl button[disabled]{
+    cursor:none;
+    opacity:0.1;
+}
+
+
+.ss88_card a[target="_blank"]::after {
+    content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQElEQVR42qXKwQkAIAxDUUdxtO6/RBQkQZvSi8I/pL4BoGw/XPkh4XigPmsUgh0626AjRsgxHTkUThsG2T/sIlzdTsp52kSS1wAAAABJRU5ErkJggg==);
+    margin: 0px 3px 0px 5px;
+}
+
+
+.ss88_dnsbl .ss88_result { width: 32.33%; flex-direction:row; position:relative; margin-top:0; font-size:14px; }
+.ss88_dnsbl .ss88_result.no, .ss88_dnsbl .ss88_result.yes { border-left:3px solid #24a148; }
+.ss88_dnsbl .ss88_result.yes { border-left:3px solid red; }
+.ss88_dnsbl span[name="ipaddress"] { font-weight:bold; }
+
+
+.ss88_card table td.cen {
+    text-align:center;
+}
+
+@media screen and(max-width:768px) {
+
+    .ss88_dnsbl .ss88_result {
+
+        width:48%;
+
+    }
+
+}
+@media screen and(max-width:500px) {
+
+    .ss88_dnsbl .ss88_result {
+
+        width:100%;
+
+    }
+    
+}
+
+.ss88_box progress {
+	background-color: #f3f3f3;
+	border: 0;
+	width: 100%;
+	height: 18px;
+	border-radius: 3px;
+    position:relative;
+}
+.ss88_box progress::-webkit-progress-bar {
+	background-color: #f3f3f3;
+	border-radius: 3px;
+}
+.ss88_box progress::-webkit-progress-value {
+	background: #cdeb8e;
+	background: -moz-linear-gradient(top,  #cdeb8e 0%, #a5c956 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#cdeb8e), color-stop(100%,#a5c956));
+	background: -webkit-linear-gradient(top,  #cdeb8e 0%,#a5c956 100%);
+	background: -o-linear-gradient(top,  #cdeb8e 0%,#a5c956 100%);
+	background: -ms-linear-gradient(top,  #cdeb8e 0%,#a5c956 100%);
+	background: linear-gradient(to bottom,  #cdeb8e 0%,#a5c956 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#cdeb8e', endColorstr='#a5c956',GradientType=0 );
+	border-radius: 3px;
+}
+.ss88_box progress.red::-webkit-progress-value {
+	background: #eb8e8e;
+	background: -moz-linear-gradient(top,  #eb8e8e 0%, #c95656 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#c95656), color-stop(100%,#c95656));
+	background: -webkit-linear-gradient(top,  #eb8e8e 0%,#c95656 100%);
+	background: -o-linear-gradient(top,  #eb8e8e 0%,#c95656 100%);
+	background: -ms-linear-gradient(top,  #eb8e8e 0%,#c95656 100%);
+	background: linear-gradient(to bottom,  #eb8e8e 0%,#c95656 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#eb8e8e', endColorstr='#c95656',GradientType=0 );
+	border-radius: 3px;
+}
+.ss88_box progress::before {
+    content: attr(title);
+    text-align:center;
+    position: absolute;
+    width: 100%;
+    font-size:10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    line-height: 1;
+}
+
+
+
+
+
+.lds-ripple {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: auto;
+    margin-top: 50px;
+  }
+  .lds-ripple div {
+    position: absolute;
+    border: 4px solid #000;
+    opacity: 1;
+    border-radius: 50%;
+    animation: lds-ripple 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+  }
+  .lds-ripple div:nth-child(2) {
+    animation-delay: -0.5s;
+  }
+  @keyframes lds-ripple {
+    0% {
+      top: 36px;
+      left: 36px;
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+    4.9% {
+      top: 36px;
+      left: 36px;
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+    5% {
+      top: 36px;
+      left: 36px;
+      width: 0;
+      height: 0;
+      opacity: 1;
+    }
+    100% {
+      top: 0px;
+      left: 0px;
+      width: 72px;
+      height: 72px;
+      opacity: 0;
+    }
+  }
   
-    l.type = "text/css";
-    l.rel = "stylesheet";
-    l.href = 'https://enhance.ss88.us/tools/style.css';
-  
-    h.appendChild(l);
+</style>
+    `;
+
+    var style = document.createElement("style")
+    style.innerText = CSS
+    document.head.appendChild(style)
 
 }
