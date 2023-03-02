@@ -668,10 +668,12 @@ function formatBytes(bytes, decimals = 2) {
 
 function injectCSS() {
 
+    var FontFamily = window.getComputedStyle(document.querySelector('.ui-text-hoverable'), null ).getPropertyValue('font-family');
+
     var CSS = `
 <style>
-.ss88_box {
-    font-family:Lato, sans-serif;
+.ss88_box, .ss88_box * {
+    font-family:${FontFamily};
 }
 .ss88_box h1 {
     font-weight:300;
@@ -886,8 +888,5 @@ function injectCSS() {
     var style = document.createElement("style")
     style.innerText = CSS
     document.head.appendChild(style)
-
-    var FontFamily = window.getComputedStyle(document.querySelector('.ui-text-hoverable'), null ).getPropertyValue('font-family');
-    document.querySelector('.ss88_box').style.FontFamily = FontFamily;
 
 }
