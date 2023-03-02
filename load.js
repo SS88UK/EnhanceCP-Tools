@@ -887,4 +887,7 @@ function injectCSS() {
     style.innerText = CSS
     document.head.appendChild(style)
 
+    var FontFamily = window.getComputedStyle(document.querySelector('.ui-text-hoverable'), null ).getPropertyValue('font-family');
+    document.querySelector('.ss88_box').style.FontFamily = FontFamily;
+
 }
