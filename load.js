@@ -103,7 +103,6 @@ function setupTab() {
                     <button name="Emails">Emails</button>
                     <button name="Databases">Databases</button>
                     <button name="Servers">Servers</button>
-                    <button name="ServerLogs">Server Logs</button>
                     <button name="DNSBL">DNSBL</button>
                 </div>
 
@@ -320,27 +319,6 @@ function setupToolsPage() {
     });
 
 
-    // Server Logs
-    ContentBox.innerHTML += `
-
-    <div class="ss88_serverlogs" data-for="ServerLogs">
-    
-        <div class="ss88_card">
-            <div class="flex">
-                <select name="serverlogs" style="padding: 10px;"></select>
-                <button name="submit" style="background: black;color: white;padding: 10px 20px;cursor: pointer;">View/Refresh</button>
-            </div>
-        </div>
-        
-        <div class="ss88_results" style="width:100%;display: flex;flex-flow: row wrap;justify-content: space-between;">
-
-        </div>
-
-    </div> 
-    `
-
-
-
     document.querySelector('button[name="Domains"]').innerHTML += ` <span>(${DomainCount})</span>`;
     document.querySelector('button[name="Emails"]').innerHTML += ` <span>(${EmailCount})</span>`;
     document.querySelector('button[name="Databases"]').innerHTML += ` <span>(${DatabaseCount})</span>`;
@@ -348,12 +326,10 @@ function setupToolsPage() {
 
 
     const dnsblSelect = document.querySelector('.ss88_dnsbl select[name="dnsbls"]');
-    const serverlogsSelect = document.querySelector('.ss88_serverlogs select[name="serverlogs"]');
 
     SS88Tools.serverData.forEach((server)=>{
 
         dnsblSelect.options[dnsblSelect.options.length] = new Option(server.friendlyName + ' (' + server.ips[0].ip + ')', server.ips[0].ip);
-        serverlogsSelect.options[serverlogsSelect.options.length] = new Option(server.friendlyName + ' (' + server.ips[0].ip + ')', server.id);
 
     });
 
@@ -361,12 +337,6 @@ function setupToolsPage() {
         
         event.target.setAttribute('disabled', true);
         doDNSBL(document.querySelector('.ss88_dnsbl .ss88_results'), dnsblSelect.value);
-
-    });
-
-    document.querySelector('.ss88_serverlogs button').addEventListener('click', () => {
-                
-        doServerLogs(document.querySelector('.ss88_serverlogs .ss88_results'), serverlogsSelect.value);
 
     });
 
