@@ -48,7 +48,6 @@ function setupObserver() {
 
             });
 
-            injectCSS();
             setupTabs();
 
         }
@@ -77,6 +76,8 @@ function setupTab() {
         const last_link = document.querySelector('#dashboard-spine > div:last-child a:last-child');
 
         if(last_link==undefined) { clearInterval(SS88Tools.tabTimeout); return; }
+
+        injectCSS()
 
         const cloned = last_link.cloneNode(true);
         if(cloned.childNodes[2]!=undefined) cloned.childNodes[2].innerHTML = 'Tools';
@@ -672,7 +673,6 @@ function injectCSS() {
     var FontFamily = window.getComputedStyle(document.querySelector('.ui-text-hoverable'), null ).getPropertyValue('font-family');
 
     var CSS = `
-<style>
 .ss88_box, .ss88_box * {
     font-family:${FontFamily};
 }
@@ -711,7 +711,6 @@ function injectCSS() {
     box-shadow: rgb(0 0 0 / 10%) 0px 4px 8px 0px;
     padding: 16px;
     margin-top: 35px;
-    font-family: Lato, sans-serif;
 }
 .ss88_card table {
     font-size:13px;
@@ -883,7 +882,6 @@ function injectCSS() {
     }
   }
   
-</style>
     `;
 
     var style = document.createElement("style")
