@@ -587,7 +587,7 @@ function doDNSBL(content, ip) {
     let totalItems = -1;
     let items = [];
 
-    const streamUrl = 'https://enhance.ss88.us/dnsbl/?ip=' + encodeURIComponent(ip)
+    const streamUrl = 'https://dnsbl.webcp.cloud/?ip=' + encodeURIComponent(ip)
     const evtSource = new EventSource(streamUrl)
 
     evtSource.addEventListener('header', (e) => {
