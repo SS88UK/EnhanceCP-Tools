@@ -308,11 +308,11 @@ function setupToolsPage() {
                 <td class="cen"><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" class=" css-o3fw7f" data-qa="icon-svg" style="${ Serv.status=='online' ? 'fill:#24a148;' : 'fill:red' }"><g fill-rule="evenodd"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm0 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z"></path><path d="M8 13.5a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"></path></g></svg></td>
                 <td>${ Serv.ips.map(u => u.ip).join(', ') } </td>
                 <td data-sortvalue="${ Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 }"><progress max="${ Serv.disks[0].usage.total }" value="${ Serv.disks[0].usage.used }" title="${ formatBytes(Serv.disks[0].usage.used) + ' / ' + formatBytes(Serv.disks[0].usage.total) }" class="${(Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 > 85) ? 'red' : ''}"> </progress></td>
-                <td class="cen">${ Serv.roles.application ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.database ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.backup ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.dns ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.email ? 'âœ…' : 'âŒ' } </td>
+                <td class="cen">${ Serv.roles.application ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.database ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.backup ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.dns ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.email ? '✅' : '❌' } </td>
             </tr>
 
         `
