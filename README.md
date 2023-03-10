@@ -5,7 +5,8 @@ A script that injects useful tools into the Enhance CP under a 'Tools' menu. Use
 
 
 ## Demo Visual
-![Demo SS](https://i.ibb.co/HhGQScX/Screenshot-2023-01-25-at-6-22-32-PM.png)
+![Screen Recording 2023-03-10 at 8 03 32 AM](https://user-images.githubusercontent.com/17299026/224324214-16eccd27-80a1-40d7-817a-9fb6b5ead660.gif)
+
 
 
 
