@@ -73,7 +73,7 @@ function setupTab() {
 
     if(sidebar.length && document.querySelector('.ss88_tab') == null && SS88Tools.accountData.roles.includes('Owner')) {
 
-        const last_link = document.querySelector('#dashboard-spine > div:last-child a:last-child');
+        const last_link = document.querySelector('#dashboard-spine > div:nth-last-child(2) a:last-child');
 
         if(last_link==undefined) { clearInterval(SS88Tools.tabTimeout); return; }
 
