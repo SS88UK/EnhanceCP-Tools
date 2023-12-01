@@ -170,7 +170,7 @@ function setupToolsPage() {
                 <td data-sortvalue="${ W.size }">${ formatBytes(W.size) }</td>
                 <td>${ D!==undefined ? (D.localRemote=='remote' ? 'Remote' : 'Local') : '' }</td>
                 <td>${ (W.phpVersion!==null && W.phpVersion!='' && W.phpVersion!==undefined) ? W.phpVersion.replace('php', '').replace(/(.{1})/,"$1.") : 'None' }</td>
-                <td>${ W.backupServerName!==undefined ? W.backupServerName : 'None' } ${ W.pendingBackup!==null ? '<abbr title="Pending Backup">(PB)</abbr>' : '' }</td>
+                <td>${ W.backupServerName!==undefined ? W.backupServerName : 'None' }</td>
                 <td>${ W.emailServerName!==undefined ? W.emailServerName : 'None' }</td>
             </tr>
 
