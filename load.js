@@ -537,7 +537,7 @@ async function getEmailsByOrg(orgID) {
 
         jsonResponse.items.forEach(item => { 
             
-            if(item.emailKind=='internal' || item.mailboxId==undefined) return;
+            if(item.emailKind=='internal') return;
 
             SS88Tools.emailsData.push(item);
         
