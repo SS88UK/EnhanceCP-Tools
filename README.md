@@ -20,5 +20,5 @@ To add this to your installation, currently the only way is to modify the index.
 Add the following (CDN by jsDelivr) between the `<head></head>` section.
 
 ```
-<script src="https://cdn.jsdelivr.net/gh/ss88uk/enhancecp-tools@development/load.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/ss88uk/enhancecp-tools@stable/load.js"></script>
 ```
