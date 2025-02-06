@@ -1,3 +1,6 @@
+// Development Version
+// Use at your own risk
+
 let SS88Tools = {
     previousUrl: window.location.href,
     accountData: [],
@@ -8,7 +11,8 @@ let SS88Tools = {
     databasesData: [],
     serversData: [],
     orgsData: [],
-    tabTimeout: 0
+    tabTimeout: 0,
+    pagesSetup: false
 }
 
 function init() {
@@ -17,9 +21,9 @@ function init() {
 
         if(SS88Tools.accountData.roles.includes('Owner')) {
 
-            injectCSS()
             setupTabs()
             getServerData()
+
         }
 
     }
@@ -70,12 +74,15 @@ function setupTab() {
     const sidebar = document.querySelectorAll('#dashboard-spine');
 
     if(document.querySelector('.ss88_tab') != null) { return false; }
+    if(SS88Tools.accountData === undefined || SS88Tools.accountData.roles === undefined) { return false; }
 
     if(sidebar.length && document.querySelector('.ss88_tab') == null && SS88Tools.accountData.roles.includes('Owner')) {
 
         const last_link = document.querySelector('#dashboard-spine > div:nth-last-child(2) a:last-child');
 
         if(last_link==undefined) { clearInterval(SS88Tools.tabTimeout); return; }
+
+        injectCSS()
 
         const cloned = last_link.cloneNode(true);
         if(cloned.childNodes[2]!=undefined) cloned.childNodes[2].innerHTML = 'Tools';
@@ -95,15 +102,15 @@ function setupTab() {
         
             let ContentBox = document.querySelector('h1').parentElement.parentElement.parentElement;
             ContentBox.classList.add('ss88_box');
-            ContentBox.innerHTML = '<h1>Tools</h1>';
+            ContentBox.innerHTML = '<h1>Tools <small>(1.2)</small></h1>';
             ContentBox.innerHTML += `
             
                 <div class="ss88_menu">
+                    <button name="Fetch">Fetch Data</button>
                     <button name="Domains">Domains</button>
                     <button name="Emails">Emails</button>
                     <button name="Databases">Databases</button>
                     <button name="Servers">Servers</button>
-                    <button name="ServerLogs">Server Logs</button>
                     <button name="DNSBL">DNSBL</button>
                 </div>
 
@@ -111,13 +118,14 @@ function setupTab() {
 
             `
 
-                getDomains().then(getOrgs).then(getWebsites).then(() => {
+            document.querySelector('.lds-ripple').remove();
+            cloned.classList.add('selected');
+            setupToolsPage();
 
-                    document.querySelector('.lds-ripple').remove();
-                    cloned.classList.add('selected');
-                    setupToolsPage();
+            document.querySelector('button[name="fetch_data"]').addEventListener('click', fetchData);
 
-                })
+            //getDomains().then(getOrgs).then(getWebsites).then(() => {})
+
         }
 
         last_link.after(cloned);
@@ -129,13 +137,47 @@ function setupTab() {
 
 }
 
+function fetchData() {
+
+    document.querySelector('.fetch_text').style.display='none';
+    document.querySelector('.lds-ripple').style.display='block';
+    document.querySelector('.fetch_requests').style.display='block';
+
+    getDomains().then(getOrgs_RateLimited).then(getWebsites).then(() => {
+
+        document.querySelector('.lds-ripple').style.display='none';
+        document.querySelector('.fetch_text').style.display='block';
+        document.querySelector('.fetch_requests').style.display='none';
+
+        setupToolsPage();
+        document.querySelector('.ss88_menu>button:nth-child(2)').click();
+
+    })
+
+}
+
 function setupToolsPage() {
 
     let ContentBox = document.querySelector('.ss88_box');
     let DomainCount = EmailCount = DatabaseCount = ServersCount = 0;
 
+    //Fetch Data
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
+    <div class="ss88_card ss88_fetch" data-for="Fetch" style="text-align:center; padding:100px;">
+
+        <div class="lds-ripple" style="display:none;"><div></div><div></div></div>
+        <div class="fetch_requests" style="display:none;">Fetching <span>N/A</span> of <span>N/A</span> requests...</div>
+    
+        <div class="fetch_text">
+            Some systems have large data sets, thus we need to fetch this data. This process may take some time and slow down your browser.<br><br>When you are ready, click the button below:<br><br>
+            <button name="fetch_data" style="background: black;color: white;padding: 10px 20px;cursor: pointer;">Fetch Data</button>
+        </div>
+    
+    </div>
+    `
+
     //Domains List
-    ContentBox.innerHTML += `
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
     <div class="ss88_card ss88_domains" data-for="Domains">
         <table>
             <thead>
@@ -154,6 +196,8 @@ function setupToolsPage() {
     </div>
     `
 
+    document.querySelector('.ss88_card.ss88_domains table tbody').innerHTML = '';
+
     SS88Tools.websitesData.forEach(W => {
 
         var D = SS88Tools.domainsData.filter(function(v,i) {
@@ -168,8 +212,8 @@ function setupToolsPage() {
                 <td>${ W.appServerName } </td>
                 <td data-sortvalue="${ W.size }">${ formatBytes(W.size) }</td>
                 <td>${ D!==undefined ? (D.localRemote=='remote' ? 'Remote' : 'Local') : '' }</td>
-                <td>${ W.phpVersion!==null ? W.phpVersion.replace('php', '').replace(/(.{1})/,"$1.") : 'None' }</td>
-                <td>${ W.backupServerName!==undefined ? W.backupServerName : 'None' } ${ W.pendingBackup!==null ? '<abbr title="Pending Backup">(PB)</abbr>' : '' }</td>
+                <td>${ (W.phpVersion!==null && W.phpVersion!='' && W.phpVersion!==undefined) ? W.phpVersion.replace('php', '').replace(/(.{1})/,"$1.") : 'None' }</td>
+                <td>${ W.backupServerName!==undefined ? W.backupServerName : 'None' }</td>
                 <td>${ W.emailServerName!==undefined ? W.emailServerName : 'None' }</td>
             </tr>
 
@@ -179,7 +223,7 @@ function setupToolsPage() {
     });
 
     // DNSBL
-    ContentBox.innerHTML += `
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
 
     <div class="ss88_dnsbl" data-for="DNSBL">
     
@@ -191,14 +235,14 @@ function setupToolsPage() {
         </div>
         
         <div class="ss88_results" style="width:100%;display: flex;flex-flow: row wrap;justify-content: space-between;">
-        <p>The DNSBL connects to a third party script. It does not save any details, nor IP addresses when data is transferred.</p>
+        <p>The DNSBL connects to a third party script to perform the lookup. It does not save any details, nor IP address when data is transferred.</p>
         </div>
 
     </div> 
     `
 
     // Emails
-    ContentBox.innerHTML += `
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
     <div class="ss88_card ss88_emails" data-for="Emails">
         <table>
             <thead>
@@ -215,6 +259,8 @@ function setupToolsPage() {
     </div>
     `
 
+    document.querySelector('.ss88_card.ss88_emails table tbody').innerHTML = '';
+
     SS88Tools.emailsData.forEach(E => {
 
         var D = SS88Tools.domainsData.filter(function(v,i) {
@@ -229,7 +275,7 @@ function setupToolsPage() {
                 <td>${ E.aliases.length } </td>
                 <td>${ E.forwardersCount } </td>
                 <td>${ E.autorespondersCount } </td>
-                <td data-sortvalue="${ E.quota.usage / E.quota.total * 100 }"><progress max="${ E.quota.total }" value="${ E.quota.usage }" title="${ E.quota.total===0 ? 'âˆž' : formatBytes(E.quota.usage) + ' / ' + formatBytes(E.quota.total) }" class="${(E.quota.usage / E.quota.total * 100 > 85) ? 'red' : ''}"> </progress></td>
+                <td data-sortvalue="${ E.quota.usage / E.quota.total * 100 }"><progress max="${ E.quota.total }" value="${ E.quota.usage }" title="${ E.quota.total===0 ? '∞' : formatBytes(E.quota.usage) + ' / ' + formatBytes(E.quota.total) }" class="${(E.quota.usage / E.quota.total * 100 > 85) ? 'red' : ''}"> </progress></td>
             </tr>
 
         `
@@ -238,7 +284,7 @@ function setupToolsPage() {
     });
 
     // Databases
-    ContentBox.innerHTML += `
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
     <div class="ss88_card ss88_dbs" data-for="Databases">
         <table>
             <thead>
@@ -251,6 +297,8 @@ function setupToolsPage() {
         </table>
     </div>
     `
+
+    document.querySelector('.ss88_card.ss88_dbs table tbody').innerHTML = '';
 
     SS88Tools.databasesData.forEach(DB => {
 
@@ -272,7 +320,7 @@ function setupToolsPage() {
     });
 
     // Servers
-    ContentBox.innerHTML += `
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
     <div class="ss88_card ss88_servers" data-for="Servers">
         <table>
             <thead>
@@ -293,11 +341,16 @@ function setupToolsPage() {
     </div>
     `
 
+    document.querySelector('.ss88_card.ss88_servers table tbody').innerHTML = '';
+
     SS88Tools.serversData.forEach(Serv => {
 
         //var S = SS88Tools.serverData.filter(function(v,i) {
         //    return v['id'] === DB.serverId;
         //})[0];
+
+        // Handle offline server
+        let server_disk = (Serv.disks===undefined) ? '<td>N/A</td>' : `<td data-sortvalue="${ Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 }"><progress max="${ Serv.disks[0].usage.total }" value="${ Serv.disks[0].usage.used }" title="${ formatBytes(Serv.disks[0].usage.used) + ' / ' + formatBytes(Serv.disks[0].usage.total) }" class="${(Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 > 85) ? 'red' : ''}"> </progress></td>`;
 
         document.querySelector('.ss88_card.ss88_servers table tbody').innerHTML += `
         
@@ -306,12 +359,12 @@ function setupToolsPage() {
                 <td>${ Serv.hostname } </td>
                 <td class="cen"><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" class=" css-o3fw7f" data-qa="icon-svg" style="${ Serv.status=='online' ? 'fill:#24a148;' : 'fill:red' }"><g fill-rule="evenodd"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm0 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z"></path><path d="M8 13.5a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"></path></g></svg></td>
                 <td>${ Serv.ips.map(u => u.ip).join(', ') } </td>
-                <td data-sortvalue="${ Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 }"><progress max="${ Serv.disks[0].usage.total }" value="${ Serv.disks[0].usage.used }" title="${ formatBytes(Serv.disks[0].usage.used) + ' / ' + formatBytes(Serv.disks[0].usage.total) }" class="${(Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 > 85) ? 'red' : ''}"> </progress></td>
-                <td class="cen">${ Serv.roles.application ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.database ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.backup ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.dns ? 'âœ…' : 'âŒ' } </td>
-                <td class="cen">${ Serv.roles.email ? 'âœ…' : 'âŒ' } </td>
+                ${server_disk}
+                <td class="cen">${ Serv.roles.application ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.database ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.backup ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.dns ? '✅' : '❌' } </td>
+                <td class="cen">${ Serv.roles.email ? '✅' : '❌' } </td>
             </tr>
 
         `
@@ -320,73 +373,58 @@ function setupToolsPage() {
     });
 
 
-    // Server Logs
-    ContentBox.innerHTML += `
+    // Button Counts
+    if(!SS88Tools.pagesSetup) document.querySelector('button[name="Domains"]').innerHTML += ` <span>(${DomainCount})</span>`;
+    else document.querySelector('button[name="Domains"]>span').innerHTML = `(${DomainCount})`;
 
-    <div class="ss88_serverlogs" data-for="ServerLogs">
-    
-        <div class="ss88_card">
-            <div class="flex">
-                <select name="serverlogs" style="padding: 10px;"></select>
-                <button name="submit" style="background: black;color: white;padding: 10px 20px;cursor: pointer;">View/Refresh</button>
-            </div>
-        </div>
+    if(!SS88Tools.pagesSetup) document.querySelector('button[name="Emails"]').innerHTML += ` <span>(${EmailCount})</span>`;
+    else document.querySelector('button[name="Emails"]>span').innerHTML = `(${EmailCount})`;
+
+    if(!SS88Tools.pagesSetup) document.querySelector('button[name="Databases"]').innerHTML += ` <span>(${DatabaseCount})</span>`;
+    else document.querySelector('button[name="Databases"]>span').innerHTML = `(${DatabaseCount})`;
+
+    if(!SS88Tools.pagesSetup) document.querySelector('button[name="Servers"]').innerHTML += ` <span>(${ServersCount})</span>`;
+    else document.querySelector('button[name="Servers"]>span').innerHTML = `(${ServersCount})`;
+
+
+    if(!SS88Tools.pagesSetup) {
+
+        const dnsblSelect = document.querySelector('.ss88_dnsbl select[name="dnsbls"]');
+
+        SS88Tools.serverData.forEach((server)=>{
+
+            dnsblSelect.options[dnsblSelect.options.length] = new Option(server.friendlyName + ' (' + server.ips[0].ip + ')', server.ips[0].ip);
+
+        });
+
+        document.querySelector('.ss88_dnsbl button').addEventListener('click', (event) => {
+            
+            event.target.setAttribute('disabled', true);
+            doDNSBL(document.querySelector('.ss88_dnsbl .ss88_results'), dnsblSelect.value);
+
+        });
+
+
+        // Table Sorts
+        const getCellValue = (tr, idx) => parseInt(tr.children[idx].dataset.sortvalue) || tr.children[idx].innerText || tr.children[idx].textContent;
+        const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
+            v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+            )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
         
-        <div class="ss88_results" style="width:100%;display: flex;flex-flow: row wrap;justify-content: space-between;">
+        document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            Array.from(tbody.querySelectorAll('tr'))
+                .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+                .forEach(tr => tbody.appendChild(tr) );
+        })));
 
-        </div>
+        toolsPageClicks()
 
-    </div> 
-    `
-
-
-
-    document.querySelector('button[name="Domains"]').innerHTML += ` <span>(${DomainCount})</span>`;
-    document.querySelector('button[name="Emails"]').innerHTML += ` <span>(${EmailCount})</span>`;
-    document.querySelector('button[name="Databases"]').innerHTML += ` <span>(${DatabaseCount})</span>`;
-    document.querySelector('button[name="Servers"]').innerHTML += ` <span>(${ServersCount})</span>`;
-
-
-    const dnsblSelect = document.querySelector('.ss88_dnsbl select[name="dnsbls"]');
-    const serverlogsSelect = document.querySelector('.ss88_serverlogs select[name="serverlogs"]');
-
-    SS88Tools.serverData.forEach((server)=>{
-
-        dnsblSelect.options[dnsblSelect.options.length] = new Option(server.friendlyName + ' (' + server.ips[0].ip + ')', server.ips[0].ip);
-        serverlogsSelect.options[serverlogsSelect.options.length] = new Option(server.friendlyName + ' (' + server.ips[0].ip + ')', server.id);
-
-    });
-
-    document.querySelector('.ss88_dnsbl button').addEventListener('click', (event) => {
-        
-        event.target.setAttribute('disabled', true);
-        doDNSBL(document.querySelector('.ss88_dnsbl .ss88_results'), dnsblSelect.value);
-
-    });
-
-    document.querySelector('.ss88_serverlogs button').addEventListener('click', () => {
-                
-        doServerLogs(document.querySelector('.ss88_serverlogs .ss88_results'), serverlogsSelect.value);
-
-    });
-
-
-    // Table Sorts
-    const getCellValue = (tr, idx) => parseInt(tr.children[idx].dataset.sortvalue) || tr.children[idx].innerText || tr.children[idx].textContent;
-    const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
-        v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
-        )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
-    
-    document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
-        const table = th.closest('table');
-        const tbody = table.querySelector('tbody');
-        Array.from(tbody.querySelectorAll('tr'))
-            .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
-            .forEach(tr => tbody.appendChild(tr) );
-    })));
-
-    toolsPageClicks()
+    }
     document.querySelector('.ss88_menu>button:first-child').click();
+
+    SS88Tools.pagesSetup = true;
 
 }
 
@@ -404,8 +442,8 @@ function toolsPageClicks() {
 
             });
 
-            btn.target.classList.add('active');
-            document.querySelector(`div[data-for="${btn.target.name}"]`).style.display='block';
+            button.classList.add('active');
+            document.querySelector(`div[data-for="${button.name}"]`).style.display='block';
 
         });
 
@@ -521,6 +559,55 @@ async function getOrgs() {
     }
 }
 
+async function getOrgs_RateLimited() {
+    return new Promise(async (resolve) => {
+        const response = await fetch(`/api/orgs/${SS88Tools.accountData.orgId}/customers?limit=999&recursive=true`);
+
+        if (response.status >= 200 && response.status <= 299) {
+            const jsonResponse = await response.json();
+            SS88Tools.orgsData = jsonResponse.items;
+
+            const queue = [...SS88Tools.orgsData.filter(org => org.websitesCount > 0)];
+            let index = 0;
+            let completedRequests = 0;
+            const totalRequests = queue.length * 3; // 3 API calls per org
+
+            async function processBatch() {
+                const batch = queue.slice(index, index + 5); // Take next 20 items
+                index += 5;
+
+                if (batch.length === 0) return; // Stop if queue is empty
+
+                // Process all API calls in the batch
+                await Promise.allSettled(batch.map(async (Org) => {
+                    await getDomainsByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); } );
+                    await getEmailsByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); } );
+                    await getDatabasesByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); });
+                }));
+
+                if (completedRequests >= totalRequests) {
+                    resolve(); // Resolve only when all requests have completed
+                } else {
+                    processBatch(); // Process the next batch
+                }
+            }
+
+            processBatch(); // Start processing
+        } else {
+            console.log(response.status, response.statusText);
+            resolve(); // Ensure resolve is called even on failure
+        }
+    });
+}
+
+
+function updateFetchCounter(now = 0, total = 0) {
+
+    document.querySelector('.fetch_requests>span:first-child').innerHTML = now;
+    document.querySelector('.fetch_requests>span:last-child').innerHTML = total;
+
+}
+
 async function getServerByID(servID) {
 
     const response = await fetch(`/api/servers/${servID}`);
@@ -565,7 +652,7 @@ async function getEmailsByOrg(orgID) {
 
         jsonResponse.items.forEach(item => { 
             
-            if(item.emailKind=='internal' || item.mailboxId==undefined) return;
+            if(item.emailKind=='internal') return;
 
             SS88Tools.emailsData.push(item);
         
@@ -604,18 +691,50 @@ function doDNSBL(content, ip) {
 
     var start = new Date();
     var finish = 0;
+    var showtype = 'all';
 
     content.innerHTML = '';
     if(document.querySelector('p.ss88_style')) document.querySelector('p.ss88_style').remove();
     content.insertAdjacentHTML("beforebegin", `
+
     <p class="ss88_style">Checking <span name="ipaddress"></span> in <span name="ilength">0</span> of <span name="ittl">0</span> servers... <span name="finished" style="color:green"></span></p>
+
+    <div class="dnsrbl_key">
+        <div class="notlisted" data-type="no">Not Listed</div>
+        <div class="timeout" data-type="to">Timeout (>2s)</div>
+        <div class="listed" data-type="yes">Listed</div>
+    </div>
+
     `);
+
+    document.querySelectorAll('.dnsrbl_key>div').forEach((type, key) => {
+
+        type.addEventListener('click', ()=>{
+
+            if(showtype==type.dataset.type) {
+
+                showtype = 'all';
+                DNSBLShowType(showtype)
+
+            } else {
+
+                showtype = type.dataset.type;
+                DNSBLShowType(showtype)
+
+            }
+
+            document.querySelectorAll('.dnsrbl_key>div').forEach(div=>{ div.classList.add('fade'); })
+            document.querySelectorAll('.dnsrbl_key>div').forEach(div=>{ if(div.dataset.type == showtype || showtype=='all') div.classList.remove('fade'); })
+
+        })
+
+    })
 
     let msg = actualMsg = '';
     let totalItems = -1;
     let items = [];
 
-    const streamUrl = 'https://enhance.ss88.us/dnsbl/?ip=' + encodeURIComponent(ip)
+    const streamUrl = 'https://dnsbl.webcp.cloud/?ip=' + encodeURIComponent(ip)
     const evtSource = new EventSource(streamUrl)
 
     evtSource.addEventListener('header', (e) => {
@@ -636,7 +755,7 @@ function doDNSBL(content, ip) {
       document.querySelector('.ss88_dnsbl span[name="ilength"]').innerHTML = item.cnt;
 
       let listed = item.listed ? '<div class="text-center">Listed</div>' : '<div class="text-center">Not Listed</div>';
-      let listedcss = item.listed ? 'yes' : 'no';
+      let listedcss = item.listed=='timeout' ? 'to' : (item.listed ? 'yes' : 'no');
 
         let moreHTML = `
         <div class="ss88_card ss88_result flex ${listedcss}">
@@ -650,16 +769,48 @@ function doDNSBL(content, ip) {
         else
             document.querySelector('.ss88_dnsbl .ss88_results').innerHTML += moreHTML;
 
+        DNSBLShowType(showtype)
+
     }, false)
 
     evtSource.addEventListener('close', () => {
       evtSource.close()
 
       finish = new Date() - start;
-      document.querySelector('.ss88_dnsbl span[name="finished"]').innerHTML = 'Finished in ' + ((finish % 60000) / 1000).toFixed(0) + ' seconds.';
+      document.querySelector('.ss88_dnsbl span[name="finished"]').innerHTML = 'Finished in ' + (finish/ 1000).toFixed(0) + ' seconds.';
       document.querySelector('.ss88_dnsbl button').removeAttribute('disabled')
 
     }, false)
+
+}
+
+function DNSBLShowType(type = 'all') {
+
+    if(type=='all') {
+
+        document.querySelectorAll('.ss88_dnsbl .ss88_result').forEach(card=>{
+
+            card.classList.remove('fade');
+
+        })
+
+    } else {
+
+        document.querySelectorAll('.ss88_dnsbl .ss88_result').forEach(card=>{
+
+            if(card.classList.contains(type)) {
+
+                card.classList.remove('fade');
+
+            } else {
+
+                card.classList.add('fade');
+
+            }
+
+        })
+
+    }
 
 }
 
@@ -698,10 +849,11 @@ function formatBytes(bytes, decimals = 2) {
 
 function injectCSS() {
 
+    var FontFamily = window.getComputedStyle(document.querySelector('.ui-text-hoverable'), null ).getPropertyValue('font-family');
+
     var CSS = `
-<style>
-.ss88_box {
-    font-family:Lato, sans-serif;
+.ss88_box, .ss88_box * {
+    font-family:${FontFamily};
 }
 .ss88_box h1 {
     font-weight:300;
@@ -712,6 +864,7 @@ function injectCSS() {
     width:100%;
     display:flex;
     margin-top:20px;
+    box-shadow: rgb(0 0 0 / 10%) 0px 4px 8px 0px;
 }
 .ss88_menu>button {
     padding:20px;
@@ -738,7 +891,6 @@ function injectCSS() {
     box-shadow: rgb(0 0 0 / 10%) 0px 4px 8px 0px;
     padding: 16px;
     margin-top: 35px;
-    font-family: Lato, sans-serif;
 }
 .ss88_card table {
     font-size:13px;
@@ -785,6 +937,8 @@ function injectCSS() {
 .ss88_dnsbl .ss88_result { width: 32.33%; flex-direction:row; position:relative; margin-top:0; font-size:14px; }
 .ss88_dnsbl .ss88_result.no, .ss88_dnsbl .ss88_result.yes { border-left:3px solid #24a148; }
 .ss88_dnsbl .ss88_result.yes { border-left:3px solid red; }
+.ss88_dnsbl .ss88_result.to { border-left:3px solid orange; }
+.ss88_dnsbl .ss88_result.fade, .dnsrbl_key>div.fade { opacity:0.3; }
 .ss88_dnsbl span[name="ipaddress"] { font-weight:bold; }
 
 
@@ -809,6 +963,9 @@ function injectCSS() {
 
     }
     
+}
+.fetch_requests>span {
+font-weight:bold;
 }
 
 .ss88_box progress {
@@ -858,7 +1015,26 @@ function injectCSS() {
 }
 
 
-
+.dnsrbl_key {
+    display:flex;
+    gap:20px;
+    margin-bottom:20px;
+}
+.dnsrbl_key>div {
+    border-left: 3px solid #24a148;
+    box-shadow:rgb(0 0 0 / 10%) 0px 4px 8px 0px;
+    background: #ffffff;
+    padding: 20px;
+    width: 100%;
+    font-weight:bold;
+    cursor:pointer;
+}
+.dnsrbl_key>div.listed {
+    border-left: 3px solid red;
+}
+.dnsrbl_key>div.timeout {
+    border-left: 3px solid orange;
+}
 
 
 .lds-ripple {
@@ -910,7 +1086,6 @@ function injectCSS() {
     }
   }
   
-</style>
     `;
 
     var style = document.createElement("style")
