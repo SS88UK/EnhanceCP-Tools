@@ -19,7 +19,7 @@ function init() {
 
     if(localStorage.session!==undefined) {
 
-        if(SS88Tools.accountData.roles.includes('Owner')) {
+        if(SS88Tools.accountData!==undefined && SS88Tools.accountData.roles!==undefined && SS88Tools.accountData.roles.includes('Owner')) {
 
             setupTabs()
             getServerData()
@@ -139,6 +139,10 @@ function setupTab() {
 
 function fetchData() {
 
+    SS88Tools.databasesData = [];
+    SS88Tools.emailsData = [];
+    SS88Tools.domainsData = [];
+
     document.querySelector('.fetch_text').style.display='none';
     document.querySelector('.lds-ripple').style.display='block';
     document.querySelector('.fetch_requests').style.display='block';
@@ -151,6 +155,7 @@ function fetchData() {
 
         setupToolsPage();
         document.querySelector('.ss88_menu>button:nth-child(2)').click();
+        document.querySelector('button[name="fetch_data"]').innerHTML = 'Refresh Data';
 
     })
 
@@ -695,6 +700,7 @@ function doDNSBL(content, ip) {
 
     content.innerHTML = '';
     if(document.querySelector('p.ss88_style')) document.querySelector('p.ss88_style').remove();
+    if(document.querySelector('.dnsrbl_key')) document.querySelector('.dnsrbl_key').remove();
     content.insertAdjacentHTML("beforebegin", `
 
     <p class="ss88_style">Checking <span name="ipaddress"></span> in <span name="ilength">0</span> of <span name="ittl">0</span> servers... <span name="finished" style="color:green"></span></p>
