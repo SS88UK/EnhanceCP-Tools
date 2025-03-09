@@ -1,6 +1,3 @@
-// Development Version
-// Use at your own risk
-
 let SS88Tools = {
     previousUrl: window.location.href,
     accountData: [],
@@ -21,13 +18,14 @@ function init() {
 
         if(SS88Tools.accountData!==undefined && SS88Tools.accountData.roles!==undefined && SS88Tools.accountData.roles.includes('Owner')) {
 
+            setupTabs()
             getServerData()
 
         }
 
     }
 
-    setupTabs()
+    setupObserver()
 
 }
 
@@ -37,9 +35,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 }, false);
 
+function setupObserver() {
+
+    const observer = new MutationObserver(function(mutations) {
+
+        if (location.href !== SS88Tools.previousUrl) {
+
+            SS88Tools.previousUrl = location.href;
+
+            [].forEach.call(document.querySelectorAll('.ss88_tab'), function(tabs) {
+
+                tabs.classList.remove('selected');
+
+            });
+
+            setupTabs();
+
+        }
+
+    });
+
+    const config = {subtree: true, childList: true};
+    observer.observe(document, config);
+
+}
+
 async function setupTabs() {
 
-    SS88Tools.tabTimeout = setInterval(setupTab, 500);
+    SS88Tools.tabTimeout = setInterval(setupTab, 100);
 
 }
 
@@ -47,13 +70,14 @@ function setupTab() {
 
     const sidebar = document.querySelectorAll('#dashboard-spine');
 
-    if(sidebar.length && !sidebar[0].querySelector('#dashboard-spine a[href="/settings"]')) return false;
     if(document.querySelector('.ss88_tab') != null) { return false; }
     if(SS88Tools.accountData === undefined || SS88Tools.accountData.roles === undefined) { return false; }
 
     if(sidebar.length && document.querySelector('.ss88_tab') == null && SS88Tools.accountData.roles.includes('Owner')) {
 
         const last_link = document.querySelector('#dashboard-spine > div:nth-last-child(2) a:last-child');
+
+        if(last_link==undefined) { clearInterval(SS88Tools.tabTimeout); return; }
 
         injectCSS()
 
@@ -75,7 +99,7 @@ function setupTab() {
         
             let ContentBox = document.querySelector('h1').parentElement.parentElement.parentElement;
             ContentBox.classList.add('ss88_box');
-            ContentBox.innerHTML = '<h1>Tools <small>(1.2)</small></h1>';
+            ContentBox.innerHTML = '<h1>Tools <small>(1.2.1)</small></h1>';
             ContentBox.innerHTML += `
             
                 <div class="ss88_menu">
@@ -101,6 +125,7 @@ function setupTab() {
 
         last_link.after(cloned);
 
+        clearInterval(SS88Tools.tabTimeout);
         return true;
 
     }
@@ -117,7 +142,7 @@ function fetchData() {
     document.querySelector('.lds-ripple').style.display='block';
     document.querySelector('.fetch_requests').style.display='block';
 
-    getDomains().then(getOrgs_RateLimited).then(getWebsites).then(() => {
+    getDomains().then(getWebsites).then(getOrgs_RateLimited).then(() => {
 
         document.querySelector('.lds-ripple').style.display='none';
         document.querySelector('.fetch_text').style.display='block';
@@ -277,15 +302,11 @@ function setupToolsPage() {
 
     SS88Tools.databasesData.forEach(DB => {
 
-        var S = SS88Tools.serverData.filter(function(v,i) {
-            return v['id'] === DB.serverId;
-        })[0];
-
         document.querySelector('.ss88_card.ss88_dbs table tbody').innerHTML += `
         
             <tr>
                 <td>${ DB.name }</td>
-                <td>${ S.friendlyName } </td>
+                <td>${ DB.dbServerName } </td>
                 <td data-sortvalue="${ DB.size }">${ formatBytes(DB.size) }</td>
             </tr>
 
@@ -319,6 +340,10 @@ function setupToolsPage() {
     document.querySelector('.ss88_card.ss88_servers table tbody').innerHTML = '';
 
     SS88Tools.serversData.forEach(Serv => {
+
+        //var S = SS88Tools.serverData.filter(function(v,i) {
+        //    return v['id'] === DB.serverId;
+        //})[0];
 
         // Handle offline server
         let server_disk = (Serv.disks===undefined) ? '<td>N/A</td>' : `<td data-sortvalue="${ Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 }"><progress max="${ Serv.disks[0].usage.total }" value="${ Serv.disks[0].usage.used }" title="${ formatBytes(Serv.disks[0].usage.used) + ' / ' + formatBytes(Serv.disks[0].usage.total) }" class="${(Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 > 85) ? 'red' : ''}"> </progress></td>`;
@@ -502,34 +527,6 @@ async function getWebsites() {
     }
 }
 
-async function getOrgs() {
-
-    const response = await fetch(`/api/orgs/${SS88Tools.accountData.orgId}/customers?limit=999&recursive=true`);
-
-    if (response.status >= 200 && response.status <= 299) {
-
-        const jsonResponse = await response.json();
-        SS88Tools.orgsData = jsonResponse.items;
-
-        SS88Tools.orgsData.forEach(Org => {
-
-            if(Org.websitesCount>0) {
-
-                getDomainsByOrg(Org.id);
-                getEmailsByOrg(Org.id);
-                getDatabasesByOrg(Org.id);
-
-            }
-    
-        });
-
-    } else {
-
-        console.log(response.status, response.statusText);
-
-    }
-}
-
 async function getOrgs_RateLimited() {
     return new Promise(async (resolve) => {
         const response = await fetch(`/api/orgs/${SS88Tools.accountData.orgId}/customers?limit=999&recursive=true`);
@@ -541,7 +538,22 @@ async function getOrgs_RateLimited() {
             const queue = [...SS88Tools.orgsData.filter(org => org.websitesCount > 0)];
             let index = 0;
             let completedRequests = 0;
-            const totalRequests = queue.length * 3; // 3 API calls per org
+            let totalRequests = queue.length * 3; // 3 API calls per org
+
+            for (const orgKey in SS88Tools.orgsData) {
+
+                for (const websiteKey in SS88Tools.websitesData) {
+    
+                    if (SS88Tools.websitesData[websiteKey].orgId == SS88Tools.orgsData[orgKey].id) {
+            
+                        totalRequests++;
+            
+                    }
+            
+                }
+
+            }
+            document.querySelector('.fetch_requests>span:last-child').innerHTML = totalRequests;
 
             async function processBatch() {
                 const batch = queue.slice(index, index + 5); // Take next 20 items
@@ -551,9 +563,13 @@ async function getOrgs_RateLimited() {
 
                 // Process all API calls in the batch
                 await Promise.allSettled(batch.map(async (Org) => {
+
                     await getDomainsByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); } );
                     await getEmailsByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); } );
-                    await getDatabasesByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); });
+                    const dbCallCount = await getDatabasesByOrg(Org.id, completedRequests, totalRequests).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); });
+                
+                    completedRequests += dbCallCount;
+
                 }));
 
                 if (completedRequests >= totalRequests) {
@@ -574,8 +590,10 @@ async function getOrgs_RateLimited() {
 
 function updateFetchCounter(now = 0, total = 0) {
 
-    document.querySelector('.fetch_requests>span:first-child').innerHTML = now;
-    document.querySelector('.fetch_requests>span:last-child').innerHTML = total;
+    let completed = document.querySelector('.fetch_requests>span:first-child').innerHTML
+    completed = parseFloat(completed)>0 ? parseFloat(completed) : 0;
+
+    document.querySelector('.fetch_requests>span:first-child').innerHTML = completed + 1;
 
 }
 
@@ -636,26 +654,46 @@ async function getEmailsByOrg(orgID) {
     }
 }
 
-async function getDatabasesByOrg(orgID) {
+async function getDatabasesByOrg(orgID, completedRequests = 0, totalRequests = 0) {
 
-    const response = await fetch(`/api/orgs/${orgID}/mysql-dbs?limit=999&sortBy=name`);
+    let apiCallCount = 0;
 
-    if (response.status >= 200 && response.status <= 299) {
+    for (const key in SS88Tools.websitesData) {
 
-        const jsonResponse = await response.json();
+        if (SS88Tools.websitesData[key].orgId == orgID) {
 
-        jsonResponse.items.forEach(item => {
-            
-            if(SS88Tools.databasesData.filter(db => db.id == item.id).length==0)
-                SS88Tools.databasesData.push(item);
-        
-        });
+            const response = await fetch(`/api/orgs/${orgID}/websites/${SS88Tools.websitesData[key].id}/mysql-dbs?limit=999&sortBy=name`);
+            apiCallCount++;
 
-    } else {
+            if (response.status >= 200 && response.status <= 299) {
 
-        console.log(response.status, response.statusText);
+                updateFetchCounter(completedRequests, totalRequests);
+
+                const jsonResponse = await response.json();
+
+                jsonResponse.items.forEach(item => {
+                    
+                    //if(SS88Tools.databasesData.filter(db => db.id == item.id).length==0) {
+
+                        item.dbServerName = SS88Tools.websitesData[key].dbServerName;
+                        SS88Tools.databasesData.push(item);
+
+                    //}
+                
+                });
+
+            } else {
+
+                console.log(response.status, response.statusText);
+
+            }
+
+        }
 
     }
+
+    return apiCallCount;
+
 }
 
 function doDNSBL(content, ip) {
