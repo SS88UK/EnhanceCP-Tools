@@ -11,6 +11,8 @@ let SS88Tools = {
     databasesData: [],
     serversData: [],
     orgsData: [],
+    wpData: [],
+    websiteAppsData: [],
     tabTimeout: 0,
     pagesSetup: false
 }
@@ -21,14 +23,13 @@ function init() {
 
         if(SS88Tools.accountData!==undefined && SS88Tools.accountData.roles!==undefined && SS88Tools.accountData.roles.includes('Owner')) {
 
-            setupTabs()
             getServerData()
 
         }
 
     }
 
-    setupObserver()
+    setupTabs()
 
 }
 
@@ -38,34 +39,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 }, false);
 
-function setupObserver() {
-
-    const observer = new MutationObserver(function(mutations) {
-
-        if (location.href !== SS88Tools.previousUrl) {
-
-            SS88Tools.previousUrl = location.href;
-
-            [].forEach.call(document.querySelectorAll('.ss88_tab'), function(tabs) {
-
-                tabs.classList.remove('selected');
-
-            });
-
-            setupTabs();
-
-        }
-
-    });
-
-    const config = {subtree: true, childList: true};
-    observer.observe(document, config);
-
-}
-
 async function setupTabs() {
 
-    SS88Tools.tabTimeout = setInterval(setupTab, 100);
+    SS88Tools.tabTimeout = setInterval(setupTab, 500);
 
 }
 
@@ -73,14 +49,13 @@ function setupTab() {
 
     const sidebar = document.querySelectorAll('#dashboard-spine');
 
+    if(sidebar.length && !sidebar[0].querySelector('#dashboard-spine a[href="/settings"]')) return false;
     if(document.querySelector('.ss88_tab') != null) { return false; }
     if(SS88Tools.accountData === undefined || SS88Tools.accountData.roles === undefined) { return false; }
 
     if(sidebar.length && document.querySelector('.ss88_tab') == null && SS88Tools.accountData.roles.includes('Owner')) {
 
         const last_link = document.querySelector('#dashboard-spine > div:nth-last-child(2) a:last-child');
-
-        if(last_link==undefined) { clearInterval(SS88Tools.tabTimeout); return; }
 
         injectCSS()
 
@@ -102,7 +77,7 @@ function setupTab() {
         
             let ContentBox = document.querySelector('h1').parentElement.parentElement.parentElement;
             ContentBox.classList.add('ss88_box');
-            ContentBox.innerHTML = '<h1>Tools <small>(1.2)</small></h1>';
+            ContentBox.innerHTML = '<h1>Tools <small>(1.3)</small></h1>';
             ContentBox.innerHTML += `
             
                 <div class="ss88_menu">
@@ -111,6 +86,7 @@ function setupTab() {
                     <button name="Emails">Emails</button>
                     <button name="Databases">Databases</button>
                     <button name="Servers">Servers</button>
+                    <button name="WordPress">WordPress</button>
                     <button name="DNSBL">DNSBL</button>
                 </div>
 
@@ -123,14 +99,12 @@ function setupTab() {
             setupToolsPage();
 
             document.querySelector('button[name="fetch_data"]').addEventListener('click', fetchData);
-
-            //getDomains().then(getOrgs).then(getWebsites).then(() => {})
+            document.querySelector('button[name="fetch_wordpress_data"]').addEventListener('click', fetchWordPressData);
 
         }
 
         last_link.after(cloned);
 
-        clearInterval(SS88Tools.tabTimeout);
         return true;
 
     }
@@ -143,15 +117,15 @@ function fetchData() {
     SS88Tools.emailsData = [];
     SS88Tools.domainsData = [];
 
-    document.querySelector('.fetch_text').style.display='none';
-    document.querySelector('.lds-ripple').style.display='block';
-    document.querySelector('.fetch_requests').style.display='block';
+    document.querySelector('.ss88_card[data-for="Fetch"] .fetch_text').style.display='none';
+    document.querySelector('.ss88_card[data-for="Fetch"] .lds-ripple').style.display='block';
+    document.querySelector('.ss88_card[data-for="Fetch"] .fetch_requests').style.display='block';
 
-    getDomains().then(getOrgs_RateLimited).then(getWebsites).then(() => {
+    getDomains().then(getWebsites).then(getOrgs_RateLimited).then(() => {
 
-        document.querySelector('.lds-ripple').style.display='none';
-        document.querySelector('.fetch_text').style.display='block';
-        document.querySelector('.fetch_requests').style.display='none';
+        document.querySelector('.ss88_card[data-for="Fetch"] .lds-ripple').style.display='none';
+        document.querySelector('.ss88_card[data-for="Fetch"] .fetch_text').style.display='block';
+        document.querySelector('.ss88_card[data-for="Fetch"] .fetch_requests').style.display='none';
 
         setupToolsPage();
         document.querySelector('.ss88_menu>button:nth-child(2)').click();
@@ -161,10 +135,87 @@ function fetchData() {
 
 }
 
+function fetchWordPressData() {
+
+    SS88Tools.wpData = [];
+
+    document.querySelector('.ss88_card[data-for="WordPress"] .fetch_text').style.display='none';
+    document.querySelector('.ss88_card[data-for="WordPress"] .lds-ripple').style.display='block';
+    document.querySelector('.ss88_card[data-for="WordPress"] .fetch_requests').style.display='block';
+    document.querySelector('.wp_table').style.display = 'none';
+
+    getWordPressData().then(() => {
+
+        document.querySelector('.ss88_card[data-for="WordPress"] .lds-ripple').style.display='none';
+        document.querySelector('.ss88_card[data-for="WordPress"] .fetch_text').style.display='block';
+        document.querySelector('.ss88_card[data-for="WordPress"] .fetch_requests').style.display='none';
+
+        document.querySelector('button[name="fetch_wordpress_data"]').innerHTML = 'Refresh WordPress Data';
+
+        document.querySelector('button[name="WordPress"]>span').innerHTML = `(${SS88Tools.wpData.length})`;
+
+        document.querySelector('.ss88_card[data-for="WordPress"] .wp_table table tbody').innerHTML = '';
+
+        SS88Tools.wpData.forEach(WP => {
+
+            let = ttlUpdates = countWPAvailableUpdates(WP)
+            let = wpVersion = getAppVersion(WP.appID)
+    
+            var W = SS88Tools.websitesData.filter(function(v,i) {
+                return v['id'] === WP.websiteID;
+            })[0];
+    
+            document.querySelector('.ss88_card[data-for="WordPress"] .wp_table table tbody').innerHTML += `
+            
+                <tr>
+                    <td><a href="/websites/${ WP.websiteID }" target="_blank">${ W.domain.domain }</a></td>
+                    <td class="cen"><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" class=" css-o3fw7f" data-qa="icon-svg" style="${ W.status=='active' ? 'fill:#24a148;' : 'fill:red' }"><g fill-rule="evenodd"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm0 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z"></path><path d="M8 13.5a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"></path></g></svg></td>
+                    <td>${ W.appServerName } </td>
+                    <td>${ wpVersion } </td>
+                    <td>${ WP.data.length } </td>
+                    <td>${ ttlUpdates }</td>
+                </tr>
+    
+            `
+
+        });
+
+        document.querySelector('.wp_table').style.display = 'block';
+
+    })
+
+}
+
+function countWPAvailableUpdates(obj) {
+
+    return obj.data.reduce((count, item) => count + (item.update === "available" ? 1 : 0), 0);
+
+}
+
+function getAppVersion(appID) {
+
+    for (const appData of SS88Tools.websiteAppsData) {
+
+        for (const app of appData) {
+
+            if (app.id === appID) {
+
+                return app.version;
+
+            }
+
+        }
+
+    }
+
+    return null;
+
+}
+
 function setupToolsPage() {
 
     let ContentBox = document.querySelector('.ss88_box');
-    let DomainCount = EmailCount = DatabaseCount = ServersCount = 0;
+    let DomainCount = EmailCount = DatabaseCount = ServersCount = WordPress = 0;
 
     //Fetch Data
     if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
@@ -175,7 +226,7 @@ function setupToolsPage() {
     
         <div class="fetch_text">
             Some systems have large data sets, thus we need to fetch this data. This process may take some time and slow down your browser.<br><br>When you are ready, click the button below:<br><br>
-            <button name="fetch_data" style="background: black;color: white;padding: 10px 20px;cursor: pointer;">Fetch Data</button>
+            <button name="fetch_data" style="background: #00a8ab;color: white;padding: 10px 20px;cursor: pointer;border-radius: 5px;">Fetch Data</button>
         </div>
     
     </div>
@@ -187,11 +238,11 @@ function setupToolsPage() {
         <table>
             <thead>
                 <th>Domain</th>
-                <th>Status</th>
+                <th width="60">Status</th>
                 <th>Server</th>
                 <th width="100">Size</th>
-                <th>Mail Routing</th>
-                <th>PHP</th>
+                <th width="100">Mail Routing</th>
+                <th width="60">PHP</th>
                 <th>Backup</th>
                 <th>Email</th>
             </thead>
@@ -234,8 +285,8 @@ function setupToolsPage() {
     
         <div class="ss88_card">
             <div class="flex">
-                <select name="dnsbls" style="padding: 10px;"></select>
-                <button name="submit" style="background: black;color: white;padding: 10px 20px;cursor: pointer;">Check</button>
+                <select name="dnsbls" style="padding: 10px;border-radius: 5px;"></select>
+                <button name="submit" style="background: #00a8ab;color: white;padding: 10px 20px;cursor: pointer;border-radius: 5px;">Check</button>
             </div>
         </div>
         
@@ -252,10 +303,10 @@ function setupToolsPage() {
         <table>
             <thead>
                 <th>Mailbox</th>
-                <th>Status</th>
-                <th>Aliases</th>
-                <th>Forwards</th>
-                <th>Autoresponders</th>
+                <th width="60">Status</th>
+                <th width="100">Aliases</th>
+                <th width="100">Forwards</th>
+                <th width="115">Autoresponders</th>
                 <th width="150">Quota</th>
             </thead>
             <tbody>
@@ -307,15 +358,11 @@ function setupToolsPage() {
 
     SS88Tools.databasesData.forEach(DB => {
 
-        var S = SS88Tools.serverData.filter(function(v,i) {
-            return v['id'] === DB.serverId;
-        })[0];
-
         document.querySelector('.ss88_card.ss88_dbs table tbody').innerHTML += `
         
             <tr>
                 <td>${ DB.name }</td>
-                <td>${ S.friendlyName } </td>
+                <td>${ DB.dbServerName }</td>
                 <td data-sortvalue="${ DB.size }">${ formatBytes(DB.size) }</td>
             </tr>
 
@@ -331,14 +378,14 @@ function setupToolsPage() {
             <thead>
                 <th>Name</th>
                 <th>Hostname</th>
-                <th>Status</th>
+                <th width="60">Status</th>
                 <th>IP(s)</th>
                 <th width="150">Disk</th>
-                <th>App</th>
-                <th>DB</th>
-                <th>Backup</th>
-                <th>DNS</th>
-                <th>Email</th>
+                <th width="60">App</th>
+                <th width="60">DB</th>
+                <th width="65">Backup</th>
+                <th width="60">DNS</th>
+                <th width="60">Email</th>
             </thead>
             <tbody>
             </tbody>
@@ -349,10 +396,6 @@ function setupToolsPage() {
     document.querySelector('.ss88_card.ss88_servers table tbody').innerHTML = '';
 
     SS88Tools.serversData.forEach(Serv => {
-
-        //var S = SS88Tools.serverData.filter(function(v,i) {
-        //    return v['id'] === DB.serverId;
-        //})[0];
 
         // Handle offline server
         let server_disk = (Serv.disks===undefined) ? '<td>N/A</td>' : `<td data-sortvalue="${ Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 }"><progress max="${ Serv.disks[0].usage.total }" value="${ Serv.disks[0].usage.used }" title="${ formatBytes(Serv.disks[0].usage.used) + ' / ' + formatBytes(Serv.disks[0].usage.total) }" class="${(Serv.disks[0].usage.used / Serv.disks[0].usage.total * 100 > 85) ? 'red' : ''}"> </progress></td>`;
@@ -378,6 +421,39 @@ function setupToolsPage() {
     });
 
 
+    // WordPress
+    if(!SS88Tools.pagesSetup) ContentBox.innerHTML += `
+    <div class="ss88_card ss88_fetch" data-for="WordPress">
+
+        <div class="wp_table" style="display:none;">
+            <table>
+                <thead>
+                    <th>Domain</th>
+                    <th width="60">Status</th>
+                    <th>Server</th>
+                    <th width="100">WP Version</th>
+                    <th width="100">Total Plugins</th>
+                    <th width="130">Updates Available</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="text-align:center; padding:100px;">
+
+            <div class="lds-ripple" style="display:none;"><div></div><div></div></div>
+            <div class="fetch_requests" style="display:none;">Fetching <span>N/A</span> of <span>N/A</span> requests...</div>
+        
+            <div class="fetch_text">
+                To get WordPress data we'll need to query the API multiple times. This process may take a long time due to Enhance's cache, which may be old.<br><br>When you are ready, click the button below:<br><br>
+                <button name="fetch_wordpress_data" style="background: #00a8ab;color: white;padding: 10px 20px;cursor: pointer;border-radius: 5px;">Fetch WordPress Data</button>
+            </div>
+
+        </div>
+    
+    </div>`
+
     // Button Counts
     if(!SS88Tools.pagesSetup) document.querySelector('button[name="Domains"]').innerHTML += ` <span>(${DomainCount})</span>`;
     else document.querySelector('button[name="Domains"]>span').innerHTML = `(${DomainCount})`;
@@ -390,6 +466,8 @@ function setupToolsPage() {
 
     if(!SS88Tools.pagesSetup) document.querySelector('button[name="Servers"]').innerHTML += ` <span>(${ServersCount})</span>`;
     else document.querySelector('button[name="Servers"]>span').innerHTML = `(${ServersCount})`;
+
+    if(!SS88Tools.pagesSetup) document.querySelector('button[name="WordPress"]').innerHTML += ` <span>(0)</span>`;
 
 
     if(!SS88Tools.pagesSetup) {
@@ -536,34 +614,6 @@ async function getWebsites() {
     }
 }
 
-async function getOrgs() {
-
-    const response = await fetch(`/api/orgs/${SS88Tools.accountData.orgId}/customers?limit=999&recursive=true`);
-
-    if (response.status >= 200 && response.status <= 299) {
-
-        const jsonResponse = await response.json();
-        SS88Tools.orgsData = jsonResponse.items;
-
-        SS88Tools.orgsData.forEach(Org => {
-
-            if(Org.websitesCount>0) {
-
-                getDomainsByOrg(Org.id);
-                getEmailsByOrg(Org.id);
-                getDatabasesByOrg(Org.id);
-
-            }
-    
-        });
-
-    } else {
-
-        console.log(response.status, response.statusText);
-
-    }
-}
-
 async function getOrgs_RateLimited() {
     return new Promise(async (resolve) => {
         const response = await fetch(`/api/orgs/${SS88Tools.accountData.orgId}/customers?limit=999&recursive=true`);
@@ -575,7 +625,23 @@ async function getOrgs_RateLimited() {
             const queue = [...SS88Tools.orgsData.filter(org => org.websitesCount > 0)];
             let index = 0;
             let completedRequests = 0;
-            const totalRequests = queue.length * 3; // 3 API calls per org
+            let totalRequests = queue.length * 3; // 3 API calls per org
+
+            for (const orgKey in SS88Tools.orgsData) {
+
+                for (const websiteKey in SS88Tools.websitesData) {
+    
+                    if (SS88Tools.websitesData[websiteKey].orgId == SS88Tools.orgsData[orgKey].id) {
+            
+                        totalRequests++;
+            
+                    }
+            
+                }
+
+            }
+
+            document.querySelector('.fetch_requests>span:last-child').innerHTML = totalRequests;
 
             async function processBatch() {
                 const batch = queue.slice(index, index + 5); // Take next 20 items
@@ -585,9 +651,13 @@ async function getOrgs_RateLimited() {
 
                 // Process all API calls in the batch
                 await Promise.allSettled(batch.map(async (Org) => {
+
                     await getDomainsByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); } );
                     await getEmailsByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); } );
-                    await getDatabasesByOrg(Org.id).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); });
+                    const dbCallCount = await getDatabasesByOrg(Org.id, completedRequests, totalRequests).finally(() => { completedRequests++; updateFetchCounter(completedRequests, totalRequests); });
+
+                    completedRequests += dbCallCount;
+
                 }));
 
                 if (completedRequests >= totalRequests) {
@@ -605,11 +675,88 @@ async function getOrgs_RateLimited() {
     });
 }
 
+async function getWordPressData() {
+
+    return new Promise(async (resolve) => {
+
+            const queue = SS88Tools.websitesData;
+            let index = 0;
+            let completedRequests = 0;
+            let totalRequests = queue.length * 1;
+
+            async function processBatch() {
+
+                const batch = queue.slice(index, index + 10); // Take next 20 items
+                index += 10;
+
+                if (batch.length === 0) return; // Stop if queue is empty
+
+                // Process all API calls in the batch
+                await Promise.allSettled(batch.map(async (Website) => {
+
+                    await getWebsiteApps(Website.orgId, Website.id).then(async (apps) => {
+
+                        completedRequests++; 
+                        updateFetchCounter2(completedRequests, totalRequests);
+
+                        if (!Array.isArray(apps)) {
+                            console.error(`ERROR: apps is not an array for Website ID: ${Website.id}`, apps);
+                            return; // Prevent `.map()` from running on invalid data
+                        }
+    
+                        if (apps.length > 0) {
+
+                            totalRequests += apps.length; // Increase total count dynamically
+                            const wpDataResults = await Promise.allSettled(apps.map(async (app) => {
+
+                                return getWPData(Website.orgId, Website.id, app.id)
+                                    .finally(() => { 
+
+                                        completedRequests++; 
+                                        updateFetchCounter2(completedRequests, totalRequests); 
+
+                                    });
+                            }));
+
+                            SS88Tools.wpData.push(...wpDataResults.map(r => r.status === "fulfilled" ? r.value : null).filter(Boolean));
+
+                        } else {
+
+                            console.log('no apps returned', apps)
+
+                        }
+
+                    });
+
+                }));
+
+                if (completedRequests >= totalRequests) {
+                    resolve(); // Resolve only when all requests have completed
+                } else {
+                    processBatch(); // Process the next batch
+                }
+
+            }
+
+            processBatch(); // Start processing
+
+    });
+
+}
 
 function updateFetchCounter(now = 0, total = 0) {
 
-    document.querySelector('.fetch_requests>span:first-child').innerHTML = now;
-    document.querySelector('.fetch_requests>span:last-child').innerHTML = total;
+    let completed = document.querySelector('.fetch_requests>span:first-child').innerHTML
+    completed = parseFloat(completed)>0 ? parseFloat(completed) : 0;
+
+    document.querySelector('.fetch_requests>span:first-child').innerHTML = completed + 1;
+
+}
+
+function updateFetchCounter2(now = 0, total = 0) {
+
+    document.querySelector('.ss88_card[data-for="WordPress"] .fetch_requests>span:first-child').innerHTML = now;
+    document.querySelector('.ss88_card[data-for="WordPress"] .fetch_requests>span:last-child').innerHTML = total;
 
 }
 
@@ -670,25 +817,97 @@ async function getEmailsByOrg(orgID) {
     }
 }
 
-async function getDatabasesByOrg(orgID) {
+async function getDatabasesByOrg(orgID, completedRequests = 0, totalRequests = 0) {
 
-    const response = await fetch(`/api/orgs/${orgID}/mysql-dbs?limit=999&sortBy=name`);
+    let apiCallCount = 0;
+
+    for (const key in SS88Tools.websitesData) {
+
+        //console.log(orgID, SS88Tools.websitesData[key].orgId);
+
+        if (SS88Tools.websitesData[key].orgId == orgID) {
+
+            //console.log(orgID);
+
+            const response = await fetch(`/api/orgs/${orgID}/websites/${SS88Tools.websitesData[key].id}/mysql-dbs?limit=999&sortBy=name`);
+            apiCallCount++;
+
+            updateFetchCounter(completedRequests, totalRequests);
+
+            if (response.status >= 200 && response.status <= 299) {
+        
+                const jsonResponse = await response.json();
+        
+                jsonResponse.items.forEach(item => {
+
+                    item.dbServerName = SS88Tools.websitesData[key].dbServerName;
+                    
+                    //if(SS88Tools.databasesData.filter(db => db.id == item.id).length==0)
+                        SS88Tools.databasesData.push(item);
+                
+                });
+        
+            } else {
+        
+                console.log(response.status, response.statusText);
+        
+            }
+
+        }
+
+    }
+
+    return apiCallCount;
+
+}
+
+async function getWebsiteApps(orgID, websiteID) {
+
+    const response = await fetch(`/api/orgs/${orgID}/websites/${websiteID}/apps`);
 
     if (response.status >= 200 && response.status <= 299) {
 
         const jsonResponse = await response.json();
 
-        jsonResponse.items.forEach(item => {
-            
-            if(SS88Tools.databasesData.filter(db => db.id == item.id).length==0)
-                SS88Tools.databasesData.push(item);
-        
-        });
+        if (!jsonResponse.items || !Array.isArray(jsonResponse.items)) {
+            console.error(`ERROR: Invalid API response structure for Website ID ${websiteID}`, jsonResponse);
+            return []; // Ensure an empty array is returned
+        }
+
+        //const apps = jsonResponse.items.filter(item => 
+        //    !SS88Tools.websiteAppsData.some(app => app.id === item.id)
+        //);
+
+        const apps = jsonResponse.items;
+
+        if(apps.length) SS88Tools.websiteAppsData.push(apps);
+
+        //console.log(apps);
+
+        console.log(`Returning ${apps.length} apps for website ${websiteID}`);
+
+        return apps;
 
     } else {
 
         console.log(response.status, response.statusText);
+        return [];
 
+    }
+}
+
+async function getWPData(orgID, websiteID, appID) {
+
+    const response = await fetch(`/api/orgs/${orgID}/websites/${websiteID}/apps/${appID}/wordpress/plugins?refreshCache=false`);
+
+    if (response.status >= 200 && response.status <= 299) {
+        const jsonResponse = await response.json();
+        console.log(`WP API Response for App ID ${appID}:`, jsonResponse);
+
+        return { websiteID, appID, data: jsonResponse.items || [] }; // Return structured data
+    } else {
+        console.log(`Failed to fetch WP data for App ID ${appID}:`, response.status);
+        return { websiteID, appID, data: [] }; // Return empty data on failure
     }
 }
 
@@ -871,6 +1090,7 @@ function injectCSS() {
     display:flex;
     margin-top:20px;
     box-shadow: rgb(0 0 0 / 10%) 0px 4px 8px 0px;
+    border-radius: 5px;
 }
 .ss88_menu>button {
     padding:20px;
@@ -879,7 +1099,7 @@ function injectCSS() {
     transition:all 0.3s ease-in-out;
 }
 .ss88_menu>button.active, .ss88_menu>button:hover {
-    border-bottom:2px solid black;
+    border-bottom:2px solid #00a8ab;
 }
 .ss88_menu>button>span {
     font-size: 12px;
@@ -887,7 +1107,7 @@ function injectCSS() {
     opacity: 0.5;
 }
 .ss88_box .ss88_card {
-    border-radius: 2px;
+    border-radius: 5px;
     background-color: rgb(255, 255, 255);
     display: flex;
     flex-direction: column;
@@ -901,18 +1121,23 @@ function injectCSS() {
 .ss88_card table {
     font-size:13px;
     width:100%;
+    box-sizing: content-box;
 }
 .ss88_card table thead {
-    background-color: black;
+    background-color: #00a8ab;
     color: white;
     cursor:pointer;
+}
+.ss88_card table thead th {
+    border-radius: 5px;
 }
 .ss88_card table th, .ss88_card table td {
     padding:10px;
     text-align:left;
+    border-radius: 5px;
 }
 .ss88_card table :not(thead) tr:hover { 
-    background-color: #ebebeb;
+    background-color: #f2f2f2;
 }
 .ss88_card table a {
     color:black;
@@ -940,7 +1165,7 @@ function injectCSS() {
 }
 
 
-.ss88_dnsbl .ss88_result { width: 32.33%; flex-direction:row; position:relative; margin-top:0; font-size:14px; }
+.ss88_dnsbl .ss88_result { width: 32.33%; flex-direction:row; position:relative; margin-top:0; font-size:14px; border-radius: 0 5px 5px 0; }
 .ss88_dnsbl .ss88_result.no, .ss88_dnsbl .ss88_result.yes { border-left:3px solid #24a148; }
 .ss88_dnsbl .ss88_result.yes { border-left:3px solid red; }
 .ss88_dnsbl .ss88_result.to { border-left:3px solid orange; }
@@ -1034,6 +1259,7 @@ font-weight:bold;
     width: 100%;
     font-weight:bold;
     cursor:pointer;
+    border-radius: 0 5px 5px 0;
 }
 .dnsrbl_key>div.listed {
     border-left: 3px solid red;
@@ -1042,6 +1268,12 @@ font-weight:bold;
     border-left: 3px solid orange;
 }
 
+.ss88_card button {
+    transition:all 0.3s ease-in-out;
+}
+.ss88_card button:hover {
+    scale:1.1;
+}
 
 .lds-ripple {
     display: inline-block;
@@ -1053,7 +1285,7 @@ font-weight:bold;
   }
   .lds-ripple div {
     position: absolute;
-    border: 4px solid #000;
+    border: 4px solid #00a8ab;
     opacity: 1;
     border-radius: 50%;
     animation: lds-ripple 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
