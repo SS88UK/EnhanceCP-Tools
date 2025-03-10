@@ -647,7 +647,7 @@ async function getOrgs_RateLimited() {
                 const batch = queue.slice(index, index + 5); // Take next 20 items
                 index += 5;
 
-                if (batch.length === 0) return; // Stop if queue is empty
+                if (batch.length === 0) resolve(); // Stop if queue is empty
 
                 // Process all API calls in the batch
                 await Promise.allSettled(batch.map(async (Org) => {
@@ -689,7 +689,7 @@ async function getWordPressData() {
                 const batch = queue.slice(index, index + 10); // Take next 20 items
                 index += 10;
 
-                if (batch.length === 0) return; // Stop if queue is empty
+                if (batch.length === 0) resolve(); // Stop if queue is empty
 
                 // Process all API calls in the batch
                 await Promise.allSettled(batch.map(async (Website) => {
